@@ -72,6 +72,6 @@ close(Socket) ->
 	emangosd_protocol:close(Socket).
 
 get_time() ->
-	DateTime = erlang:universaltime(),
-	EpochSeconds = calendar:datetime_to_gregorian_seconds(DateTime),
-	<<EpochSeconds:32>>.
+	UnixTimestamp = emangosd_utils:get_unix_timestamp(),
+	error_logger:info_report(UnixTimestamp),
+	<<UnixTimestamp:32>>.
