@@ -23,15 +23,19 @@
 
 -export([behaviour_info/1]).
 
--export([send/2, close/1]).
+-export([setopts/2, send/2, close/1]).
 
 behaviour_info(callbacks) ->
-	[{on_connected, 1},
+	[{init, 0},
+		{on_connected, 1},
 		{on_packet_received, 2},
 		{on_disconnected, 1},
 		{on_disconnected, 2}];
 behaviour_info(_Other) ->
 	undefined.
+
+setopts(Socket, Options) ->
+	inet:setopts(Socket, Options).
 
 send(Socket, Packet) ->
 	gen_tcp:send(Socket, Packet).

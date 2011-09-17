@@ -58,6 +58,8 @@ handle_call(_Request, _From, State) ->
 	{noreply, ok, State}.
 
 handle_cast({connected, Socket}, #state{callback=Callback}=State) ->
+	{ok, Options} = Callback:init(),
+	emangosd_protocol:setopts(Socket, Options),
 	Callback:on_connected(Socket),
 	{noreply, State};
 handle_cast(_Msg, State) ->

@@ -31,7 +31,8 @@
 %% emangosd_protocol Function Exports
 %% ------------------------------------------------------------------
 
--export([on_connected/1, on_packet_received/2, on_disconnected/1, on_disconnected/2]).
+-export([init/0, on_connected/1, on_packet_received/2,
+		on_disconnected/1, on_disconnected/2]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
@@ -40,6 +41,9 @@
 %% ------------------------------------------------------------------
 %% emangosd_protocol Function Definitions
 %% ------------------------------------------------------------------
+
+init() ->
+	{ok, []}.
 
 on_connected(Socket) ->
 	error_logger:info_report([on_connected, {socket, Socket}]),
