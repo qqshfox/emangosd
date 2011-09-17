@@ -17,35 +17,18 @@
 %%% Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 %%%------------------------------------------------------------------
 
--module(emangosd_protocol).
+-module(emangosd_realm_proof_codec).
 
 -author('Hanfei Shen <qqshfox@gmail.com>').
 
--export([behaviour_info/1]).
+-export([decode/1, encode/1]).
 
--export([setopts/2, send/2, recv/2, recv/3, close/1]).
+-include("realm_records.hrl").
 
-behaviour_info(callbacks) ->
-	[{init, 0},
-		{on_connected, 1},
-		{on_packet_received, 3},
-		{on_disconnected, 1},
-		{on_disconnected, 2}];
-behaviour_info(_Other) ->
-	undefined.
+decode(<<A:256/little, M1:160/little, _CRC:160/little, _NumberOfKeys, _SecurityFlags, Rest/binary>>) ->
+	{ok, #proof{a=A, m1=M1}, Rest};
+decode(_) ->
+	{error, partial}.
 
-setopts(Socket, Options) ->
-	inet:setopts(Socket, Options).
-
-send(Socket, Packet) ->
-	gen_tcp:send(Socket, Packet).
-
-recv(Socket, Length) ->
-	gen_tcp:recv(Socket, Length).
-
-recv(Socket, Length, Timeout) ->
-	gen_tcp:recv(Socket, Length, Timeout).
-
-close(Socket) ->
-	gen_tcp:close(Socket),
-	self() ! {close, Socket}.
+encode(Record) ->
+	<<>>.

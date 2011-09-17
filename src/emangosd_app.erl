@@ -34,8 +34,8 @@ start(_StartType, _StartArgs) ->
 	webtool:start(standard_path, [{port, 8888}, {bind_address, {192, 168, 0, 29}}, {server_name, "hanfei-gentoo"}]),
 	case emangosd_sup:start_link() of
 		{ok, _Pid} = Ok ->
-			Callback = emangosd_daytime,
-			Port = 1863,
+			Callback = emangosd_realm,
+			Port = 3724,
 			Acceptors = 1,
 			emangosd_listener:listen(Callback, Port, Acceptors),
 			Ok;
