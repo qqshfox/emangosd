@@ -25,7 +25,8 @@
 
 -record(state, {
 		socket,
-		callback}).
+		callback,
+		cb_state}).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -60,14 +61,14 @@ handle_call(_Request, _From, State) ->
 handle_cast({connected, Socket}, #state{callback=Callback}=State) ->
 	{ok, Options} = Callback:init(),
 	emangosd_protocol:setopts(Socket, Options),
-	Callback:on_connected(Socket),
-	{noreply, State};
+	{ok, CBState} = Callback:on_connected(Socket),
+	{noreply, State#state{cb_state=CBState}};
 handle_cast(_Msg, State) ->
 	{noreply, State}.
 
-handle_info({tcp, Socket, Packet}, #state{callback=Callback}=State) ->
-	Callback:on_packet_received(Socket, Packet),
-	{noreply, State};
+handle_info({tcp, Socket, Packet}, #state{callback=Callback, cb_state=CBState}=State) ->
+	{ok, NewCBState} = Callback:on_packet_received(Socket, Packet, CBState),
+	{noreply, State#state{cb_state=NewCBState}};
 handle_info({tcp_closed, Socket}, #state{callback=Callback}=State) ->
 	Callback:on_disconnected(Socket),
 	{stop, normal, State};

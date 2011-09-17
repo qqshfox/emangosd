@@ -1,0 +1,5 @@
+-define(CMD_AUTH_LOGON_CHALLENGE,     16#00).
+-define(CMD_AUTH_LOGON_PROOF,         16#01).
+-define(CMD_AUTH_RECONNECT_CHALLENGE, 16#02).
+-define(CMD_AUTH_RECONNECT_PROOF,     16#03).
+-define(CMD_REALM_LIST,               16#10).
