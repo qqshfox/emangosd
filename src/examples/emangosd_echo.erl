@@ -31,7 +31,7 @@
 %% emangosd_protocol Function Exports
 %% ------------------------------------------------------------------
 
--export([init/0, on_connected/1, on_packet_received/2,
+-export([init/0, on_connected/1, on_packet_received/3,
 		on_disconnected/1, on_disconnected/2]).
 
 %% ------------------------------------------------------------------
@@ -47,12 +47,12 @@ init() ->
 
 on_connected(Socket) ->
 	error_logger:info_report([on_connected, {socket, Socket}]),
-	ok.
+	{ok, []}.
 
-on_packet_received(Socket, Packet) ->
-	error_logger:info_report([on_packet_received, {socket, Socket}, {packet, Packet}]),
+on_packet_received(Socket, Packet, State) ->
+	error_logger:info_report([on_packet_received, {socket, Socket}, {packet, Packet}, {state, State}]),
 	send(Socket, Packet),
-	ok.
+	{ok, State}.
 
 on_disconnected(Socket) ->
 	on_disconnected(Socket, ok).
