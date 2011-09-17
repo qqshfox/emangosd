@@ -17,14 +17,18 @@
 %%% Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 %%%------------------------------------------------------------------
 
--module(emangosd_realm_opcodes).
+-module(emangosd_realm_realm_list_codec).
 
--compile([export_all]).
+-author('Hanfei Shen <qqshfox@gmail.com>').
 
--include("realm_opcodes.hrl").
+-export([decode/1, encode/1]).
 
-get_handler(?CMD_AUTH_LOGON_CHALLENGE)     -> challenge;
-get_handler(?CMD_AUTH_LOGON_PROOF)         -> proof;
-get_handler(?CMD_AUTH_RECONNECT_CHALLENGE) -> rechallenge;
-get_handler(?CMD_AUTH_RECONNECT_PROOF)     -> reproof;
-get_handler(?CMD_REALM_LIST)               -> realm_list.
+-include("realm_records.hrl").
+
+decode(<<0:32/little, Rest/binary>>) ->
+	{ok, 0, Rest};
+decode(_) ->
+	{error, partial}.
+
+encode(Record) ->
+	<<>>.

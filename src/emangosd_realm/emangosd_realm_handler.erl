@@ -21,14 +21,13 @@
 
 -author('Hanfei Shen <qqshfox@gmail.com>').
 
--export([challenge/2, proof/2]).
+-export([challenge/2, proof/2, realm_list/2]).
 
 -include("realm_opcodes.hrl").
 -include("realm_records.hrl").
 -include("records.hrl").
 
 challenge(Data, State) ->
-	error_logger:info_report([{data, Data}, {state, State}]),
 	case emangosd_realm_challenge_codec:decode(Data) of
 		{ok, #challenge{i=Username}, Rest} ->
 			error_logger:info_report([{username, Username}]),
@@ -49,7 +48,6 @@ challenge(Data, State) ->
 	end.
 
 proof(Data, #logon_state{account=Account, hash=Hash}=State) ->
-	error_logger:info_report([{data, Data}, {state, State}]),
 	case emangosd_realm_proof_codec:decode(Data) of
 		{ok, #proof{a=A, m1=M1}, Rest} ->
 			error_logger:info_report([{a, A}, {m1, M1}, {account, Account}, {hash, Hash}]),
@@ -69,6 +67,15 @@ proof(Data, #logon_state{account=Account, hash=Hash}=State) ->
 			{ok, Data, State}
 	end.
 
+realm_list(Data, State) ->
+	case emangosd_realm_realm_list_codec:decode(Data) of
+		{ok, 0, Rest} ->
+			PacketToSend = build_realm_list_reply(),
+			{{send, PacketToSend}, Rest, State};
+		{error, partial} ->
+			{ok, Data, State}
+	end.
+
 %% ------------------------------------------------------------------
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
@@ -77,7 +84,26 @@ get_account(Username) ->
 	{ok, #account{name=Username, password="123123"}}.
 
 build_challenge_reply(Hash) ->
-	<<?CMD_AUTH_LOGON_CHALLENGE, 0, 0, (Hash#hash.public):256/little, 1, (Hash#hash.generator):(1*8)/little, 32, (Hash#hash.modulus):(32*8)/little, (Hash#hash.salt):256/little, 0:128/little, 0>>.
+	<<0, 0, (Hash#hash.public):256/little, 1, (Hash#hash.generator):(1*8)/little,
+	32, (Hash#hash.modulus):(32*8)/little, (Hash#hash.salt):256/little, 0:128/little, 0>>.
 
 build_proof_reply(Hash) ->
-	<<?CMD_AUTH_LOGON_PROOF, 0, (Hash#hash.session_proof):160/little, 16#00800000:32, 0:32, 0:16>>.
+	<<0, (Hash#hash.session_proof):160/little, 16#00800000:32, 0:32, 0:16>>.
+
+build_realm() ->
+	Realm = #realm{},
+	Binary = <<(Realm#realm.icon), (Realm#realm.lock), (Realm#realm.flags),
+	(list_to_binary(Realm#realm.name))/binary, 0, (list_to_binary(Realm#realm.address))/binary, 0,
+	(Realm#realm.population_level):32/little-float, (Realm#realm.amount_of_characters),
+	(Realm#realm.timezone), (Realm#realm.unknown)>>,
+	if Realm#realm.flags band 16#04 /= 0 ->
+			<<Binary/binary, (Realm#realm.version_major), (Realm#realm.version_minor),
+			(Realm#realm.version_bugfix), (Realm#realm.build):16/little>>;
+		true ->
+			Binary
+	end.
+
+build_realm_list_reply() ->
+	RealmBinList= [build_realm()],
+	Binary = list_to_binary(RealmBinList),
+	<<(size(Binary) + 8):16/little, 0:32, (length(RealmBinList)):16/little, Binary/binary, 16#0010:16/little>>.

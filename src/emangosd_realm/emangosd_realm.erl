@@ -78,14 +78,14 @@ on_partial_packet_received(Socket, Packet, #state{logon_state=LogonState}=State)
 	error_logger:info_report([on_partial_packet_received, {socket, Socket}, {packet, Packet}, {state, State}]),
 	<<Opcode, Data/binary>> = Packet,
 	Handler = emangosd_realm_opcodes:get_handler(Opcode),
-	error_logger:info_report([{handler, Handler}, {data, Data}]),
+	error_logger:info_report([{handler, Handler}, {data, Data}, {logon_state, LogonState}]),
 	{Action, NewRest, NewLogonState} = emangosd_realm_handler:Handler(Data, LogonState),
 	error_logger:info_report([{action, Action}, {new_rest, NewRest}, {new_logon_state, NewLogonState}]),
 	case Action of
 		ok -> ok;
 		{send, PacketToSend} ->
 			error_logger:info_report([Action]),
-			send(Socket, PacketToSend)
+			send(Socket, [Opcode, PacketToSend])
 	end,
 	error_logger:info_report([{handler, Handler}, {new_rest, NewRest}, {new_logon_state, NewLogonState}]),
 	{ok, State#state{rest=NewRest, logon_state=NewLogonState}}.
