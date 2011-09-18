@@ -19,7 +19,9 @@
 
 -module(emangosd_realm_opcodes).
 
--compile([export_all]).
+-author('Hanfei Shen <qqshfox@gmail.com>').
+
+-export([get_handler/1]).
 
 -include("realm_opcodes.hrl").
 
@@ -27,4 +29,6 @@ get_handler(?CMD_AUTH_LOGON_CHALLENGE)     -> challenge;
 get_handler(?CMD_AUTH_LOGON_PROOF)         -> proof;
 get_handler(?CMD_AUTH_RECONNECT_CHALLENGE) -> rechallenge;
 get_handler(?CMD_AUTH_RECONNECT_PROOF)     -> reproof;
-get_handler(?CMD_REALM_LIST)               -> realm_list.
+get_handler(?CMD_REALM_LIST)               -> realm_list;
+get_handler(UnknownOpcode)                 ->
+	error_logger:warning_report([{unknown_opcode, UnknownOpcode}]).
