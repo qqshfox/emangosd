@@ -46,7 +46,7 @@
 %% ------------------------------------------------------------------
 
 start_link(Callback, LSocket) ->
-	gen_server:start_link({local, ?SERVER}, ?MODULE, [Callback, LSocket], []).
+	gen_server:start_link(?MODULE, [Callback, LSocket], [{debug, [trace]}]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
