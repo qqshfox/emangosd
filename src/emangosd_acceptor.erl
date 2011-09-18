@@ -70,7 +70,8 @@ handle_info(timeout, #state{lsocket=LSocket, callback=Callback}=State) ->
 				Other -> exit(Pid, Other)
 			end,
 			{noreply, State, 0};
-		_ ->
+		Error ->
+			error_logger:error_report(Error),
 			{stop, normal, State}
 	end;
 handle_info(_Info, State) ->
