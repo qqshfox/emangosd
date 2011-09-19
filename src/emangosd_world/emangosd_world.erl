@@ -63,7 +63,7 @@ on_connected(Socket) ->
 on_packet_received(Socket, Packet, #state{rest=Rest}=State) ->
 	error_logger:info_report([on_packet_received, {socket, Socket}, {packet, Packet}, {state, State}]),
 	PartialPacket = <<Rest/binary, Packet/binary>>,
-	{ok, NewState} = on_partial_packet_received(Socket, PartialPacket, State#state{rest=(<<>>)}),
+	{ok, NewState} = on_header_received(Socket, PartialPacket, State#state{rest=(<<>>)}),
 	setopts(Socket),
 	{ok, NewState}.
 
@@ -78,12 +78,19 @@ on_disconnected(Socket, Reason) ->
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
-on_partial_packet_received(Socket, <<PacketSize:16, Packet:PacketSize/binary, Rest/binary>>, #state{rest=OldRest}=State) ->
-	error_logger:info_report([on_partial_packet_received, {socket, Socket}, {packet_size, PacketSize}, {packet, Packet}, {rest, Rest}, {state, State}]),
-	<<Opcode:32/little, Data/binary>> = Packet,
+on_header_received(Socket, <<Header:6/binary, Rest/binary>>, #state{crypto_state=CryptoState}=State) ->
+	error_logger:info_report([on_header_received, {socket, Socket}, {header, Header}, {rest, Rest}, {state, State}]),
+	DecryptedHeader = emangosd_world_crypto:decrypt(Header, CryptoState),
+	on_body_received(Socket, <<DecryptedHeader/binary, Rest/binary>>, State);
+on_header_received(_Socket, Binary, #state{rest=Rest}=State) ->
+	{ok, State#state{rest=(<<Rest/binary, Binary/binary>>)}}.
+
+on_body_received(Socket, <<PacketSize:16, Packet:PacketSize/binary, Rest/binary>>, #state{rest=OldRest}=State) ->
+	error_logger:info_report([on_body_received, {socket, Socket}, {packet_size, PacketSize}, {packet, Packet}, {rest, Rest}, {state, State}]),
+	<<Opcode:32/little, Body/binary>> = Packet,
 	Handler = emangosd_world_opcodes:get_handler(Opcode),
-	error_logger:info_report([{handler, Handler}, {data, Data}]),
-	case emangosd_world_handler:Handler(Data, []) of
+	error_logger:info_report([{handler, Handler}, {body, Body}]),
+	case emangosd_world_handler:Handler(Body, []) of
 		ok -> ok;
 		{send, PacketToSend} ->
 			send(Socket, PacketToSend)
@@ -91,7 +98,7 @@ on_partial_packet_received(Socket, <<PacketSize:16, Packet:PacketSize/binary, Re
 	NewRest = <<OldRest/binary, Rest/binary>>,
 	error_logger:info_report([{handler, Handler}, {new_rest, NewRest}]),
 	{ok, State#state{rest=NewRest}};
-on_partial_packet_received(_Socket, Binary, #state{rest=Rest}=State) ->
+on_body_received(_Socket, Binary, #state{rest=Rest}=State) ->
 	{ok, State#state{rest=(<<Rest/binary, Binary/binary>>)}}.
 
 setopts(Socket) ->
