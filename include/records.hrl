@@ -7,4 +7,4 @@
 -record(realm, {id, icon=0, lock=0, flags=16#04,
 		name="eMaNOSd Server", address="192.168.56.100:8085",
 		population_level=0.0, amount_of_characters=0, timezone=1, unknown=16#2C,
-		version_major=4, version_minor=1, version_bugfix=0, build=14250}).
+		version_major=3, version_minor=3, version_bugfix=5, build=13507}).
