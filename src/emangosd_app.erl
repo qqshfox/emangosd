@@ -31,7 +31,7 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-	webtool:start(standard_path, [{port, 8888}, {bind_address, {192, 168, 0, 29}}, {server_name, "hanfei-gentoo"}]),
+	webtool:start(standard_path, [{port, 8888}, {bind_address, {192, 168, 56, 100}}, {server_name, "gentoo"}]),
 	case emangosd_sup:start_link() of
 		{ok, _Pid} = Ok ->
 			emangosd_listener:listen(emangosd_realm, 3724, 1),
