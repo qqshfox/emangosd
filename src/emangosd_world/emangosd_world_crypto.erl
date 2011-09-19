@@ -17,30 +17,25 @@
 %%% Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 %%%------------------------------------------------------------------
 
--module(emangosd_app).
+-module(emangosd_world_crypto).
 
 -author('Hanfei Shen <qqshfox@gmail.com>').
 
--behaviour(application).
+-compile(export_all).
 
-%% Application callbacks
--export([start/2, stop/1]).
+-include("world_records.hrl").
 
-%% ===================================================================
-%% Application callbacks
-%% ===================================================================
+encrypt(Header, #crypto_state{authenticated=false}) ->
+	Header.
 
-start(_StartType, _StartArgs) ->
-	webtool:start(standard_path, [{port, 8888}, {bind_address, {192, 168, 56, 100}}, {server_name, "gentoo"}]),
-	case emangosd_sup:start_link() of
-		{ok, _Pid} = Ok ->
-			ets:new(logon_authenticated_accounts, [set, public, named_table]),
-			emangosd_listener:listen(emangosd_realm, 3724, 1),
-			emangosd_listener:listen(emangosd_world, 8085, 1),
-			Ok;
-		Other ->
-			Other
-	end.
+decrypt(Header, #crypto_state{authenticated=false}) ->
+	Header.
 
-stop(_State) ->
-	ok.
+encrypt_key(Account, ClientSeed, ServerSeed, K) ->
+	Sha1 = crypto:sha_init(),
+	Sha1Update1 = crypto:sha_update(Sha1, Account),
+	Sha1Update2 = crypto:sha_update(Sha1Update1, <<0:32>>),
+	Sha1Update3 = crypto:sha_update(Sha1Update2, ClientSeed),
+	Sha1Update4 = crypto:sha_update(Sha1Update3, ServerSeed),
+	Sha1Update5 = crypto:sha_update(Sha1Update4, K),
+	crypto:sha_final(Sha1Update5).

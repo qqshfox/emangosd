@@ -1,0 +1,1 @@
+-record(crypto_state, {authenticated=false, address}).

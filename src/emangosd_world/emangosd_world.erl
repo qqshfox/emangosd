@@ -24,10 +24,13 @@
 -behaviour(emangosd_protocol).
 
 -include("world_records.hrl").
+-include("world_opcodes.hrl").
 
 -define(OPTS, [{active, once}]).
 
--record(state, {rest=(<<>>)}).
+-record(state, {
+		rest=(<<>>),
+		crypto_state=#crypto_state{}}).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -52,7 +55,9 @@ init() ->
 	{ok, ?OPTS}.
 
 on_connected(Socket) ->
+	State = #state{},
 	error_logger:info_report([on_connected, {socket, Socket}]),
+	send_packet(Socket, ?SMSG_AUTH_CHALLENGE, <<1:32/little, 0:32, 0:128>>),
 	{ok, #state{}}.
 
 on_packet_received(Socket, Packet, #state{rest=Rest}=State) ->
@@ -73,21 +78,21 @@ on_disconnected(Socket, Reason) ->
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
-on_partial_packet_received(Socket, Packet, State) ->
-	error_logger:info_report([on_partial_packet_received, {socket, Socket}, {packet, Packet}, {state, State}]),
-	<<Opcode, Data/binary>> = Packet,
+on_partial_packet_received(Socket, <<PacketSize:16, Packet:PacketSize/binary, Rest/binary>>, #state{rest=OldRest}=State) ->
+	error_logger:info_report([on_partial_packet_received, {socket, Socket}, {packet_size, PacketSize}, {packet, Packet}, {rest, Rest}, {state, State}]),
+	<<Opcode:32/little, Data/binary>> = Packet,
 	Handler = emangosd_world_opcodes:get_handler(Opcode),
 	error_logger:info_report([{handler, Handler}, {data, Data}]),
-	{Action, NewRest} = emangosd_world_handler:Handler(Data),
-	error_logger:info_report([{action, Action}, {new_rest, NewRest}]),
-	case Action of
+	case emangosd_world_handler:Handler(Data, []) of
 		ok -> ok;
 		{send, PacketToSend} ->
-			error_logger:info_report([Action]),
-			send(Socket, [Opcode, PacketToSend])
+			send(Socket, PacketToSend)
 	end,
+	NewRest = <<OldRest/binary, Rest/binary>>,
 	error_logger:info_report([{handler, Handler}, {new_rest, NewRest}]),
-	{ok, State#state{rest=NewRest}}.
+	{ok, State#state{rest=NewRest}};
+on_partial_packet_received(_Socket, Binary, #state{rest=Rest}=State) ->
+	{ok, State#state{rest=(<<Rest/binary, Binary/binary>>)}}.
 
 setopts(Socket) ->
 	emangosd_protocol:setopts(Socket, ?OPTS).
@@ -105,3 +110,13 @@ send(Socket, Packet) ->
 close(Socket) ->
 	error_logger:info_report([close, {socket, Socket}]),
 	emangosd_protocol:close(Socket).
+
+send_packet(Socket, Opcode, Packet) ->
+	error_logger:info_report([send_packet, {socket, Socket}, {opcode, Opcode}, {packet, Packet}, {packet_size, size(Packet)}]),
+	Data = <<Opcode:16/little, Packet/binary>>,
+	send_packet(Socket, Data).
+
+send_packet(Socket, Data) ->
+	Size = size(Data),
+	DataToSend = <<Size:16, Data/binary>>,
+	send(Socket, DataToSend).

@@ -17,30 +17,27 @@
 %%% Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 %%%------------------------------------------------------------------
 
--module(emangosd_app).
+-module(emangosd_world_handler).
 
 -author('Hanfei Shen <qqshfox@gmail.com>').
 
--behaviour(application).
+-compile(export_all).
 
-%% Application callbacks
--export([start/2, stop/1]).
+-include("world_opcodes.hrl").
+-include("world_records.hrl").
+-include("records.hrl").
 
-%% ===================================================================
-%% Application callbacks
-%% ===================================================================
-
-start(_StartType, _StartArgs) ->
-	webtool:start(standard_path, [{port, 8888}, {bind_address, {192, 168, 56, 100}}, {server_name, "gentoo"}]),
-	case emangosd_sup:start_link() of
-		{ok, _Pid} = Ok ->
-			ets:new(logon_authenticated_accounts, [set, public, named_table]),
-			emangosd_listener:listen(emangosd_realm, 3724, 1),
-			emangosd_listener:listen(emangosd_world, 8085, 1),
-			Ok;
-		Other ->
-			Other
-	end.
-
-stop(_State) ->
+auth_session(Data, _State) ->
+	{ok, Build, Account, ClientSeed, Digest} = emangosd_world_auth_session_codec:decode(Data),
+	ServerSeed = <<0:32>>,
+	error_logger:info_report([{build, Build}, {account, Account}, {client_seed, ClientSeed}, {server_seed, ServerSeed}, {digest, Digest}]),
+	[{Account, K}] = ets:lookup(logon_authenticated_accounts, Account),
+	error_logger:info_report([{k, K}]),
+	case emangosd_world_crypto:encrypt_key(Account, ClientSeed, ServerSeed, K) of
+		Digest ->
+			Address = "dummy",
+			error_logger:info_report([authenticated_successfully, {account, Account}, {address, Address}]);
+		_Other ->
+			error_logger:info_report(_Other)
+	end,
 	ok.
