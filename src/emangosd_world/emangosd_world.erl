@@ -57,8 +57,8 @@ init() ->
 on_connected(Socket) ->
 	State = #state{},
 	error_logger:info_report([on_connected, {socket, Socket}]),
-	send_packet(Socket, ?SMSG_AUTH_CHALLENGE, <<1:32/little, 0:32, 0:128>>),
-	{ok, #state{}}.
+	send_packet(Socket, ?SMSG_AUTH_CHALLENGE, <<1:32/little, 0:32, 0:128>>, State#state.crypto_state),
+	{ok, State}.
 
 on_packet_received(Socket, Packet, #state{rest=Rest}=State) ->
 	error_logger:info_report([on_packet_received, {socket, Socket}, {packet, Packet}, {state, State}]),
@@ -81,23 +81,31 @@ on_disconnected(Socket, Reason) ->
 on_header_received(Socket, <<Header:6/binary, Rest/binary>>, #state{crypto_state=CryptoState}=State) ->
 	error_logger:info_report([on_header_received, {socket, Socket}, {header, Header}, {rest, Rest}, {state, State}]),
 	DecryptedHeader = emangosd_world_crypto:decrypt(Header, CryptoState),
+	error_logger:info_report([{decrypted_header, DecryptedHeader}]),
 	on_body_received(Socket, <<DecryptedHeader/binary, Rest/binary>>, State);
 on_header_received(_Socket, Binary, #state{rest=Rest}=State) ->
 	{ok, State#state{rest=(<<Rest/binary, Binary/binary>>)}}.
 
-on_body_received(Socket, <<PacketSize:16, Packet:PacketSize/binary, Rest/binary>>, #state{rest=OldRest}=State) ->
+on_body_received(Socket, <<PacketSize:16, Packet:PacketSize/binary, Rest/binary>>, #state{rest=OldRest, crypto_state=CryptoState}=State) ->
 	error_logger:info_report([on_body_received, {socket, Socket}, {packet_size, PacketSize}, {packet, Packet}, {rest, Rest}, {state, State}]),
 	<<Opcode:32/little, Body/binary>> = Packet,
 	Handler = emangosd_world_opcodes:get_handler(Opcode),
 	error_logger:info_report([{handler, Handler}, {body, Body}]),
-	case emangosd_world_handler:Handler(Body, []) of
-		ok -> ok;
-		{send, PacketToSend} ->
-			send(Socket, PacketToSend)
+	case emangosd_world_handler:Handler(Body, CryptoState) of
+		{error, _Reason}=Error ->
+			NewCryptoState = CryptoState,
+			error_logger:info_report(Error),
+			exit(self(), Error);
+		{Action, NewCryptoState} ->
+			case Action of
+				ok -> ok;
+				{send, OpcodeToSend, BodyToSend} -> send_packet(Socket, OpcodeToSend, BodyToSend, NewCryptoState)
+			end,
+			{ok, NewCryptoState}
 	end,
 	NewRest = <<OldRest/binary, Rest/binary>>,
 	error_logger:info_report([{handler, Handler}, {new_rest, NewRest}]),
-	{ok, State#state{rest=NewRest}};
+	{ok, State#state{rest=NewRest, crypto_state=NewCryptoState}};
 on_body_received(_Socket, Binary, #state{rest=Rest}=State) ->
 	{ok, State#state{rest=(<<Rest/binary, Binary/binary>>)}}.
 
@@ -118,12 +126,9 @@ close(Socket) ->
 	error_logger:info_report([close, {socket, Socket}]),
 	emangosd_protocol:close(Socket).
 
-send_packet(Socket, Opcode, Packet) ->
-	error_logger:info_report([send_packet, {socket, Socket}, {opcode, Opcode}, {packet, Packet}, {packet_size, size(Packet)}]),
-	Data = <<Opcode:16/little, Packet/binary>>,
-	send_packet(Socket, Data).
-
-send_packet(Socket, Data) ->
-	Size = size(Data),
-	DataToSend = <<Size:16, Data/binary>>,
-	send(Socket, DataToSend).
+send_packet(Socket, Opcode, Body, State) ->
+	error_logger:info_report([send_packet, {socket, Socket}, {opcode, Opcode}, {body, Body}]),
+	Size = size(Body) + 2,
+	EncryptedHeader = emangosd_world_crypto:encrypt(<<Size:16, Opcode:16/little>>, State),
+	error_logger:info_report([{encrypted_header, EncryptedHeader}]),
+	send(Socket, [EncryptedHeader, Body]).

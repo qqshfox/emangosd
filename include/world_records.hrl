@@ -1,1 +1,1 @@
--record(crypto_state, {authenticated=false, address}).
+-record(crypto_state, {authenticated=false, address, encrypt_key, decrypt_key}).

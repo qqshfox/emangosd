@@ -25,9 +25,13 @@
 
 -include("world_records.hrl").
 
-encrypt(Header, #crypto_state{authenticated=false}) ->
+encrypt(Header, #crypto_state{authenticated=true, encrypt_key=K}=State) ->
+	crypto:rc4_encrypt(K, Header);
+encrypt(Header, #crypto_state{authenticated=false}=State) ->
 	Header.
 
+decrypt(Header, #crypto_state{authenticated=true, decrypt_key=K}) ->
+	crypto:rc4_encrypt(K, Header);
 decrypt(Header, #crypto_state{authenticated=false}) ->
 	Header.
 
@@ -39,3 +43,8 @@ encrypt_key(Account, ClientSeed, ServerSeed, K) ->
 	Sha1Update4 = crypto:sha_update(Sha1Update3, ServerSeed),
 	Sha1Update5 = crypto:sha_update(Sha1Update4, K),
 	crypto:sha_final(Sha1Update5).
+
+session_crypto_key(K) ->
+	Seed = 16#5753914293C0DD12CAEA97E804AE98CC, % ServerEncryptionKey
+	%Seed = 16#C2B3723CC6AED9B5343C53EE2F4367CE, % ServerDecryptionKey
+	crypto:sha_mac(<<Seed:128/little>>, K).
