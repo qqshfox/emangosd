@@ -17,30 +17,29 @@
 %%% Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 %%%------------------------------------------------------------------
 
--module(emangosd_app).
+-module(emangosd_world_auth_session_codec).
 
 -author('Hanfei Shen <qqshfox@gmail.com>').
 
--behaviour(application).
+-export([decode/1, encode/1]).
 
-%% Application callbacks
--export([start/2, stop/1]).
+-include("world_records.hrl").
 
-%% ===================================================================
-%% Application callbacks
-%% ===================================================================
+decode(<<Build:32/little, _:32, Rest/binary>>) ->
+	{ok, Account, ClientSeed, Digest} = decode_more(Rest),
+	{ok, Build, Account, ClientSeed, Digest}.
 
-start(_StartType, _StartArgs) ->
-	webtool:start(standard_path, [{port, 8888}, {bind_address, {192, 168, 56, 100}}, {server_name, "gentoo"}]),
-	case emangosd_sup:start_link() of
-		{ok, _Pid} = Ok ->
-			ets:new(logon_authenticated_accounts, [set, public, named_table]),
-			emangosd_listener:listen(emangosd_realm, 3724, 1),
-			emangosd_listener:listen(emangosd_world, 8085, 1),
-			Ok;
-		Other ->
-			Other
-	end.
+encode(Record) ->
+	<<>>.
 
-stop(_State) ->
-	ok.
+%% ------------------------------------------------------------------
+%% Internal Function Definitions
+%% ------------------------------------------------------------------
+
+decode_more(Binary) ->
+	decode_more(Binary, "").
+
+decode_more(<<0, _:32, ClientSeed:4/binary, _:32, _:32, _:32, _:64, Digest:20/binary, _Rest/binary>>, Account) ->
+	{ok, lists:reverse(Account), ClientSeed, Digest};
+decode_more(<<C, Rest/binary>>, Account) ->
+	decode_more(Rest, [C | Account]).

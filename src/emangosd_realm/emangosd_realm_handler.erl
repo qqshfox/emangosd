@@ -57,6 +57,8 @@ proof(Data, #logon_state{account=Account, hash=Hash}=State) ->
 				M1 ->
 					PacketToSend = build_proof_reply(NewHash),
 					NewState = State#logon_state{authenticated=true, hash=NewHash},
+					error_logger:info_report([{name, Account#account.name}, {session_key, NewHash#hash.session_key}]),
+					ets:insert(logon_authenticated_accounts, {Account#account.name, NewHash#hash.session_key}),
 					{{send, PacketToSend}, Rest, NewState};
 				_Other ->
 					Reason = incorrect_password,

@@ -46,7 +46,7 @@
 %% ------------------------------------------------------------------
 
 start_link(Callback, LSocket) ->
-	gen_server:start_link({local, ?SERVER}, ?MODULE, [Callback, LSocket], []).
+	gen_server:start_link(?MODULE, [Callback, LSocket], [{debug, [trace]}]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
@@ -70,7 +70,8 @@ handle_info(timeout, #state{lsocket=LSocket, callback=Callback}=State) ->
 				Other -> exit(Pid, Other)
 			end,
 			{noreply, State, 0};
-		_ ->
+		Error ->
+			error_logger:error_report(Error),
 			{stop, normal, State}
 	end;
 handle_info(_Info, State) ->
