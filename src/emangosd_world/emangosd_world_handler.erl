@@ -27,7 +27,7 @@
 -include("world_records.hrl").
 -include("records.hrl").
 
-auth_session(Data, #crypto_state{address=Address}=State) ->
+auth_session(Data, #session{crypto_state=CryptoState, address=Address}=Session) ->
 	{ok, Build, Account, ClientSeed, Digest} = emangosd_world_auth_session_codec:decode(Data),
 	ServerSeed = <<0:32>>,
 	error_logger:info_report([{build, Build}, {account, Account}, {client_seed, ClientSeed}, {server_seed, ServerSeed}, {digest, Digest}]),
@@ -35,10 +35,10 @@ auth_session(Data, #crypto_state{address=Address}=State) ->
 	error_logger:info_report([{k, K}]),
 	case emangosd_world_crypto:encrypt_key(Account, ClientSeed, ServerSeed, K) of
 		Digest ->
-			EncryptKey = emangosd_world_crypto:session_crypto_key(K),
-			DecryptKey = emangosd_world_crypto:session_crypto_key(K),
+			{EncryptKey, _} = emangosd_world_crypto:session_crypto_key(server_encryption_key, K),
+			{DecryptKey, _} = emangosd_world_crypto:session_crypto_key(server_decryption_key, K),
 			error_logger:info_report([authenticated_successfully, {account, Account}, {address, Address}, {encrypt_key, EncryptKey}, {decrypt_key, DecryptKey}]),
-			{{send, ?SMSG_AUTH_RESPONSE, <<12, 0:32, 0, 0:32, 1>>}, State#crypto_state{authenticated=true, encrypt_key=EncryptKey, decrypt_key=DecryptKey}};
+			{ok, {send, ?SMSG_AUTH_RESPONSE, <<12, 0:32, 0, 0:32, 2>>}, Session#session{crypto_state=CryptoState#crypto_state{authenticated=true, encrypt_key=EncryptKey, decrypt_key=DecryptKey}}};
 		_Other ->
 			error_logger:info_report(_Other),
 			{error, authenticated_failed}
