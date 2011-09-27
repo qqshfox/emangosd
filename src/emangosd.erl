@@ -24,7 +24,7 @@
 -export([start/0, stop/0]).
 
 start() ->
-	webtool:start(standard_path, [{port, 8888}, {bind_address, {192, 168, 0, 129}}, {server_name, "gentoo"}]),
+	webtool:start(standard_path, [{port, 8888}, {bind_address, {0, 0, 0, 0}}, {server_name, erlang:atom_to_list(?MODULE)}]),
 	application:start(emangosd).
 
 stop() ->
