@@ -28,22 +28,18 @@
 encrypt(Header, #crypto_state{authenticated=true, encrypt_key=K}=State) ->
 	error_logger:info_report([encrypt, {authenticated, true}, {encrypt_key, K}]),
 	{NewKey, NewHeader} = crypto:rc4_encrypt_with_state(K, Header),
-	{State#crypto_state{encrypt_key=NewKey}, NewHeader};
-encrypt(Header, #crypto_state{authenticated=true, encrypt_key=K}=State) ->
-	error_logger:info_report([encrypt, {authenticated, true}]),
-	{NewKey, NewHeader} = crypto:rc4_encrypt_with_state(K, Header),
-	{State#crypto_state{encrypt_key=NewKey}, NewHeader};
+	{NewHeader, State#crypto_state{encrypt_key=NewKey}};
 encrypt(Header, #crypto_state{authenticated=false}=State) ->
 	error_logger:info_report([encrypt, {authenticated, false}]),
-	{State, Header}.
+	{Header, State}.
 
 decrypt(Header, #crypto_state{authenticated=true, decrypt_key=K}=State) ->
 	error_logger:info_report([decrypt, {authenticated, true}, {decrypt_key, K}]),
 	{NewKey, NewHeader} = crypto:rc4_encrypt_with_state(K, Header),
-	{State#crypto_state{decrypt_key=NewKey}, NewHeader};
+	{NewHeader, State#crypto_state{decrypt_key=NewKey}};
 decrypt(Header, #crypto_state{authenticated=false}=State) ->
 	error_logger:info_report([decrypt, {authenticated, false}]),
-	{State, Header}.
+	{Header, State}.
 
 encrypt_key(Account, ClientSeed, ServerSeed, K) ->
 	Sha1 = crypto:sha_init(),

@@ -76,8 +76,8 @@ on_disconnected(Socket, Reason) ->
 
 on_header_received(Socket, <<Header:6/binary, Rest/binary>>, #session{crypto_state=CryptoState}=Session) ->
 	error_logger:info_report([on_header_received, {socket, Socket}, {header, Header}, {rest, Rest}, {session, Session}]),
-	{NewCryptoState, DecryptedHeader} = emangosd_world_crypto:decrypt(Header, CryptoState),
-	error_logger:info_report([{new_crypto_state, NewCryptoState}, {decrypted_header, DecryptedHeader}]),
+	{DecryptedHeader, NewCryptoState} = emangosd_world_crypto:decrypt(Header, CryptoState),
+	error_logger:info_report([{decrypted_header, DecryptedHeader}, {new_crypto_state, NewCryptoState}]),
 	on_body_received(Socket, <<DecryptedHeader/binary, Rest/binary>>, Session#session{crypto_state=NewCryptoState});
 on_header_received(_Socket, Binary, #session{rest=Rest}=Session) ->
 	{ok, Session#session{rest=(<<Rest/binary, Binary/binary>>)}}.
@@ -121,7 +121,7 @@ close(Socket) ->
 send_packet(Socket, Opcode, Body, CryptoState) ->
 	Size = size(Body) + 2,
 	error_logger:info_report([send_packet, {socket, Socket}, {size, Size}, {opcode, Opcode}, {body, Body}]),
-	{NewCryptoState, EncryptedHeader} = emangosd_world_crypto:encrypt(<<Size:16, Opcode:16/little>>, CryptoState),
-	error_logger:info_report([{new_crypto_state, NewCryptoState}, {encrypted_header, EncryptedHeader}]),
+	{EncryptedHeader, NewCryptoState} = emangosd_world_crypto:encrypt(<<Size:16, Opcode:16/little>>, CryptoState),
+	error_logger:info_report([{encrypted_header, EncryptedHeader}, {new_crypto_state, NewCryptoState}]),
 	send(Socket, [EncryptedHeader, Body]),
 	NewCryptoState.
