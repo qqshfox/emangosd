@@ -24,6 +24,7 @@
 -export([start/0, stop/0]).
 
 start() ->
+	webtool:start(standard_path, [{port, 8888}, {bind_address, {192, 168, 0, 129}}, {server_name, "gentoo"}]),
 	application:start(emangosd).
 
 stop() ->

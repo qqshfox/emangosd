@@ -24,28 +24,32 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0]).
+-export([start_link/0, start_link/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
 -define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
+-define(CHILD3(I, Type, Args), {I, {I, start_link, [Args]}, permanent, 5000, Type, [I]}).
 
 %% ===================================================================
 %% API functions
 %% ===================================================================
 
 start_link() ->
-	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+	start_link([]).
+
+start_link(Servers) ->
+	supervisor:start_link({local, ?MODULE}, ?MODULE, Servers).
 
 %% ===================================================================
 %% Supervisor callbacks
 %% ===================================================================
 
-init([]) ->
+init(Servers) ->
 	AcceptorPoolSup = ?CHILD(emangosd_acceptor_pool_sup, supervisor),
-	Listener = ?CHILD(emangosd_listener, worker),
+	Listener = ?CHILD3(emangosd_listener, worker, Servers),
 	Children = [AcceptorPoolSup, Listener],
 	RestartStrategy = {one_for_all, 5, 10},
 	{ok, {RestartStrategy, Children}}.

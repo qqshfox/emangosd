@@ -31,7 +31,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/0, listen/3]).
+-export([start_link/0, start_link/1, listen/1, listen/3]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -45,8 +45,16 @@
 %% ------------------------------------------------------------------
 
 start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+	start_link([]).
 
+start_link(Servers) ->
+    {ok, _State} = Ok = gen_server:start_link({local, ?SERVER}, ?MODULE, [], []),
+	[listen(Server) || Server <- Servers],
+	Ok.
+
+listen({Callback, Port, Acceptors}) ->
+	listen(Callback, Port, Acceptors).
+	
 listen(Callback, Port, Acceptors) ->
 	gen_server:call(?SERVER, {listen, Callback, Port, Acceptors}).
 

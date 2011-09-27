@@ -31,16 +31,8 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-	webtool:start(standard_path, [{port, 8888}, {bind_address, {192, 168, 56, 100}}, {server_name, "gentoo"}]),
-	case emangosd_sup:start_link() of
-		{ok, _Pid} = Ok ->
-			ets:new(logon_authenticated_accounts, [set, public, named_table]),
-			emangosd_listener:listen(emangosd_realm, 3724, 1),
-			emangosd_listener:listen(emangosd_world, 8085, 1),
-			Ok;
-		Other ->
-			Other
-	end.
+	ets:new(logon_authenticated_accounts, [set, public, named_table]),
+	emangosd_sup:start_link([{emangosd_realm, 3724, 1}, {emangosd_world, 8085, 1}]).
 
 stop(_State) ->
 	ok.
