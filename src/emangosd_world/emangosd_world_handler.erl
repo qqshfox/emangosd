@@ -27,6 +27,9 @@
 -include("world_records.hrl").
 -include("records.hrl").
 
+char_enum(Data, Session) ->
+	{ok, {send, ?SMSG_CHAR_ENUM, <<0>>}, Session}.
+
 auth_session(Data, #session{crypto_state=CryptoState, address=Address}=Session) ->
 	{ok, Build, Account, ClientSeed, Digest} = emangosd_world_auth_session_codec:decode(Data),
 	ServerSeed = <<0:32>>,
@@ -43,3 +46,6 @@ auth_session(Data, #session{crypto_state=CryptoState, address=Address}=Session) 
 			error_logger:info_report(_Other),
 			{error, authenticated_failed}
 	end.
+
+ready_for_account_data_times(<<>>, Session) ->
+	{ok, {send, ?SMSG_ACCOUNT_DATA_TIMES, <<0:32/little, 1, 15:32/little, 0:32/little, 0:256/little>>}, Session}.

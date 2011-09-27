@@ -25,6 +25,8 @@
 
 -include("world_opcodes.hrl").
 
-get_handler(?CMSG_AUTH_SESSION) -> auth_session;
-get_handler(UnknownOpcode)      ->
+get_handler(?CMSG_CHAR_ENUM)                    -> char_enum;
+get_handler(?CMSG_AUTH_SESSION)                 -> auth_session;
+get_handler(?CMSG_READY_FOR_ACCOUNT_DATA_TIMES) -> ready_for_account_data_times;
+get_handler(UnknownOpcode)                      ->
 	error_logger:warning_report([{unknown_opcode, UnknownOpcode}]).
