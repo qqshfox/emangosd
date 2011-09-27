@@ -25,7 +25,7 @@
 -define(SERVER, ?MODULE).
 
 -record(state, {
-    lsocket}).
+		lsocket}).
 
 %% ------------------------------------------------------------------
 %% API Function Exports
@@ -38,7 +38,7 @@
 %% ------------------------------------------------------------------
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+		terminate/2, code_change/3]).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
@@ -48,13 +48,13 @@ start_link() ->
 	start_link([]).
 
 start_link(Servers) ->
-    {ok, _State} = Ok = gen_server:start_link({local, ?SERVER}, ?MODULE, [], []),
+	{ok, _State} = Ok = gen_server:start_link({local, ?SERVER}, ?MODULE, [], []),
 	[listen(Server) || Server <- Servers],
 	Ok.
 
 listen({Callback, Port, Acceptors}) ->
 	listen(Callback, Port, Acceptors).
-	
+
 listen(Callback, Port, Acceptors) ->
 	gen_server:call(?SERVER, {listen, Callback, Port, Acceptors}).
 
@@ -71,19 +71,19 @@ handle_call({listen, Callback, Port, Acceptors}, _From, State) ->
 	start_acceptors(Callback, LSocket, Acceptors),
 	{reply, ok, State#state{lsocket=LSocket}};
 handle_call(_Request, _From, State) ->
-    {noreply, ok, State}.
+	{noreply, ok, State}.
 
 handle_cast(_Msg, State) ->
-    {noreply, State}.
+	{noreply, State}.
 
 handle_info(_Info, State) ->
-    {noreply, State}.
+	{noreply, State}.
 
 terminate(_Reason, _State) ->
-    ok.
+	ok.
 
 code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
+	{ok, State}.
 
 %% ------------------------------------------------------------------
 %% Internal Function Definitions

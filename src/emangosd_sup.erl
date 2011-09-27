@@ -39,7 +39,7 @@
 
 start_link() ->
 	start_link([]).
-	
+
 start_link(Servers) ->
 	supervisor:start_link({local, ?MODULE}, ?MODULE, Servers).
 
